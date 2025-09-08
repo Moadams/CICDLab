@@ -246,10 +246,10 @@ Resources:
   EcrRepository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub '${AWS::StackName}-repo'
+      RepositoryName: !Sub 'cicdlab-repo'
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-repo'
+          Value: !Sub 'cicdlab-repo'
       RepositoryPolicyText:
         Version: '2008-10-17'
         Statement:
