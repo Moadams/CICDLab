@@ -41,14 +41,14 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-VPC'
+          Value: !Sub 'cicdlab-VPC'
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-IGW'
+          Value: !Sub 'cicdlab-IGW'
 
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -65,7 +65,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PublicSubnet1'
+          Value: !Sub 'cicdlab-PublicSubnet1'
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
@@ -76,7 +76,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PublicSubnet2'
+          Value: !Sub 'cicdlab-PublicSubnet2'
 
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
@@ -86,7 +86,7 @@ Resources:
       CidrBlock: !Ref PrivateSubnet1Cidr
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PrivateSubnet1'
+          Value: !Sub 'cicdlab-PrivateSubnet1'
 
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
@@ -96,7 +96,7 @@ Resources:
       CidrBlock: !Ref PrivateSubnet2Cidr
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PrivateSubnet2'
+          Value: !Sub 'cicdlab-PrivateSubnet2'
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -104,7 +104,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PublicRouteTable'
+          Value: !Sub 'cicdlab-PublicRouteTable'
 
   PublicRoute:
     Type: AWS::EC2::Route
@@ -131,7 +131,7 @@ Resources:
       Domain: vpc
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-NatGatewayEIP1'
+          Value: !Sub 'cicdlab-NatGatewayEIP1'
 
   NatGateway1:
     Type: AWS::EC2::NatGateway
@@ -140,7 +140,7 @@ Resources:
       SubnetId: !Ref PublicSubnet1
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-NatGateway1'
+          Value: !Sub 'cicdlab-NatGateway1'
 
   NatGatewayEIP2:
     Type: AWS::EC2::EIP
@@ -148,7 +148,7 @@ Resources:
       Domain: vpc
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-NatGatewayEIP2'
+          Value: !Sub 'cicdlab-NatGatewayEIP2'
 
   NatGateway2:
     Type: AWS::EC2::NatGateway
@@ -157,7 +157,7 @@ Resources:
       SubnetId: !Ref PublicSubnet2
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-NatGateway2'
+          Value: !Sub 'cicdlab-NatGateway2'
 
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
@@ -165,7 +165,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PrivateRouteTable1'
+          Value: !Sub 'cicdlab-PrivateRouteTable1'
 
   PrivateRoute1:
     Type: AWS::EC2::Route
@@ -186,7 +186,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-PrivateRouteTable2'
+          Value: !Sub 'cicdlab-PrivateRouteTable2'
 
   PrivateRoute2:
     Type: AWS::EC2::Route
@@ -216,7 +216,7 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-ALB-SG'
+          Value: !Sub 'cicdlab-ALB-SG'
 
   EcsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -230,7 +230,7 @@ Resources:
           SourceSecurityGroupId: !Ref AlbSecurityGroup
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-ECS-SG'
+          Value: !Sub 'cicdlab-ECS-SG'
   
   # ------------------------------------------------------------#
   #  ECS & Fargate                                              #
@@ -238,10 +238,10 @@ Resources:
   EcsCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Sub '${AWS::StackName}-Cluster'
+      ClusterName: !Sub 'cicdlab-Cluster'
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-Cluster'
+          Value: !Sub 'cicdlab-Cluster'
 
   EcrRepository:
     Type: AWS::ECR::Repository
@@ -269,7 +269,7 @@ Resources:
   EcsTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${AWS::StackName}-TaskExecutionRole'
+      RoleName: !Sub 'cicdlab-TaskExecutionRole'
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -282,7 +282,7 @@ Resources:
   EcsTaskRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${AWS::StackName}-TaskRole'
+      RoleName: !Sub 'cicdlab-TaskRole'
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -302,7 +302,7 @@ Resources:
   EcsTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: !Sub '${AWS::StackName}-task-def'
+      Family: !Sub 'cicdlab-task-def'
       Cpu: '256'
       Memory: '512'
       NetworkMode: awsvpc
@@ -311,7 +311,7 @@ Resources:
       ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
       TaskRoleArn: !GetAtt EcsTaskRole.Arn
       ContainerDefinitions:
-        - Name: !Sub '${AWS::StackName}-container'
+        - Name: !Sub 'cicdlab-container'
           Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}'
           PortMappings:
             - ContainerPort: !Ref ApplicationPort
@@ -328,7 +328,7 @@ Resources:
       - AlbListener
     Properties:
       Cluster: !Ref EcsCluster
-      ServiceName: !Sub '${AWS::StackName}-service'
+      ServiceName: !Sub 'cicdlab-service'
       TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
       DesiredCount: 1
@@ -347,12 +347,12 @@ Resources:
             - !Ref EcsSecurityGroup
           AssignPublicIp: DISABLED
       LoadBalancers:
-        - ContainerName: !Sub '${AWS::StackName}-container'
+        - ContainerName: !Sub 'cicdlab-container'
           ContainerPort: !Ref ApplicationPort
           TargetGroupArn: !Ref AlbTargetGroup
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-service'
+          Value: !Sub 'cicdlab-service'
 
   # ------------------------------------------------------------#
   #  Application Load Balancer (ALB)                            #
@@ -368,7 +368,7 @@ Resources:
         - !Ref AlbSecurityGroup
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-ALB'
+          Value: !Sub 'cicdlab-ALB'
 
   AlbTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -383,7 +383,7 @@ Resources:
       HealthCheckIntervalSeconds: 30
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-TargetGroup'
+          Value: !Sub 'cicdlab-TargetGroup'
 
   AlbListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -401,17 +401,17 @@ Resources:
   CodePipelineBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'codepipeline-${AWS::StackName}-${AWS::AccountId}'
+      BucketName: !Sub 'codepipeline-cicdlab-${AWS::AccountId}'
       VersioningConfiguration:
         Status: Enabled
       Tags:
         - Key: Name
-          Value: !Sub 'codepipeline-${AWS::StackName}-artifact-store'
+          Value: !Sub 'codepipeline-cicdlab-artifact-store'
 
   CodePipelineServiceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${AWS::StackName}-CodePipelineRole'
+      RoleName: !Sub 'cicdlab-CodePipelineRole'
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -429,8 +429,8 @@ Resources:
                   - 's3:GetBucketVersioning'
                   - 's3:ListBucket'
                 Resource:
-                  - !Sub 'arn:aws:s3:::codepipeline-${AWS::StackName}-${AWS::AccountId}'
-                  - !Sub 'arn:aws:s3:::codepipeline-${AWS::StackName}-${AWS::AccountId}/*'
+                  - !Sub 'arn:aws:s3:::codepipeline-cicdlab-${AWS::AccountId}'
+                  - !Sub 'arn:aws:s3:::codepipeline-cicdlab-${AWS::AccountId}/*'
               - Effect: Allow
                 Action:
                   - 'ecr:BatchGetImage'
@@ -458,7 +458,7 @@ Resources:
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${AWS::StackName}-CodeDeployRole'
+      RoleName: !Sub 'cicdlab-CodeDeployRole'
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -471,14 +471,14 @@ Resources:
   CodeDeployApplication:
     Type: AWS::CodeDeploy::Application
     Properties:
-      ApplicationName: !Sub '${AWS::StackName}-App'
+      ApplicationName: !Sub 'cicdlab-App'
       ComputePlatform: ECS
 
   CodeDeployDeploymentGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
     Properties:
       ApplicationName: !Ref CodeDeployApplication
-      DeploymentGroupName: !Sub '${AWS::StackName}-DG'
+      DeploymentGroupName: !Sub 'cicdlab-DG'
       DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
       ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
       AutoRollbackConfiguration:
@@ -505,12 +505,12 @@ Resources:
   CloudWatchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub '/ecs/${AWS::StackName}'
+      LogGroupName: !Sub '/ecs/cicdlab'
 
   EventBridgeRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub 'EcrImagePush-Rule-${AWS::StackName}'
+      Name: !Sub 'EcrImagePush-Rule-cicdlab'
       Description: Triggers CodePipeline on new ECR image push.
       EventPattern:
         source:
@@ -529,7 +529,7 @@ Resources:
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      Name: !Sub '${AWS::StackName}-Pipeline'
+      Name: !Sub 'cicdlab-Pipeline'
       RoleArn: !GetAtt CodePipelineServiceRole.Arn
       ArtifactStore:
         Type: S3
@@ -571,22 +571,22 @@ Outputs:
     Description: The DNS name of the Application Load Balancer.
     Value: !GetAtt Alb.DNSName
     Export:
-      Name: !Sub '${AWS::StackName}-ALB-Endpoint'
+      Name: !Sub 'cicdlab-ALB-Endpoint'
 
   EcrRepositoryUri:
     Description: The URI of the ECR repository.
     Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}'
     Export:
-      Name: !Sub '${AWS::StackName}-ECR-URI'
+      Name: !Sub 'cicdlab-ECR-URI'
 
   EcsClusterName:
     Description: The name of the ECS cluster.
     Value: !Ref EcsCluster
     Export:
-      Name: !Sub '${AWS::StackName}-ECS-Cluster-Name'
+      Name: !Sub 'cicdlab-ECS-Cluster-Name'
 
   EcsServiceName:
     Description: The name of the ECS service.
     Value: !Ref EcsService
     Export:
-      Name: !Sub '${AWS::StackName}-ECS-Service-Name'
+      Name: !Sub 'cicdlab-ECS-Service-Name'
