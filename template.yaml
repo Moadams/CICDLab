@@ -594,7 +594,8 @@ Resources:
                 ApplicationName: !Ref CodeDeployApplication
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroup
                 TaskDefinitionTemplateArtifact: EcrImage
-                TaskDefinitionTemplatePath: taskdef.json    
+                TaskDefinitionTemplatePath: taskdef.json   
+                AppSpecTemplateArtifact: EcrImage 
                 AppSpecTemplatePath: appspec.yaml           
               RunOrder: 1
 
