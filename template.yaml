@@ -506,6 +506,14 @@ Resources:
             TestTrafficRoute:
               ListenerArns:
                 - !Ref AlbListener
+      BlueGreenDeploymentConfiguration:   
+        TerminateBlueInstancesOnDeploymentSuccess:
+          Action: TERMINATE
+          TerminationWaitTimeInMinutes: 5
+        DeploymentReadyOption:
+          ActionOnTimeout: CONTINUE_DEPLOYMENT
+        GreenFleetProvisioningOption:
+          Action: DISCOVER_EXISTING
   
   
 
