@@ -495,7 +495,7 @@ Resources:
         DeploymentType: BLUE_GREEN
       ECSServices:
         - ClusterName: !Ref EcsCluster
-          ServiceName: !Ref EcsService
+          ServiceName: !GetAtt EcsService.Name
       LoadBalancerInfo:
         TargetGroupPairInfoList:
           - TargetGroups:
