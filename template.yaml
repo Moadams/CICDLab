@@ -575,7 +575,6 @@ Resources:
                 Version: '1'
               Configuration:
                 RepositoryName: !Ref EcrRepository
-                PollForSourceChanges: 'false'
               OutputArtifacts:
                 - Name: EcrImage
               RunOrder: 1
