@@ -337,6 +337,8 @@ Resources:
       TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
       DesiredCount: 0
+      DeploymentController:             
+        Type: CODE_DEPLOY
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 100
