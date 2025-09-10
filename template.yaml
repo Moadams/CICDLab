@@ -415,7 +415,7 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroupGreen
       LoadBalancerArn: !Ref Alb
-      Port: 8080                  
+      Port: 9000                  
       Protocol: HTTP
   
   # ------------------------------------------------------------#
@@ -531,8 +531,6 @@ Resources:
           TerminationWaitTimeInMinutes: 5
         DeploymentReadyOption:
           ActionOnTimeout: CONTINUE_DEPLOYMENT
-        GreenFleetProvisioningOption:
-          Action: DISCOVER_EXISTING
   
   
 
