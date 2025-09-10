@@ -299,6 +299,11 @@ Resources:
                   - 's3:ListBucket'
                 Resource: '*'
 
+  CloudWatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/cicdlab'
+
   EcsTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -312,7 +317,7 @@ Resources:
       TaskRoleArn: !GetAtt EcsTaskRole.Arn
       ContainerDefinitions:
         - Name: !Sub 'cicdlab-container'
-          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}'
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}:latest'
           PortMappings:
             - ContainerPort: !Ref ApplicationPort
           LogConfiguration:
@@ -331,7 +336,7 @@ Resources:
       ServiceName: !Sub 'cicdlab-service'
       TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
-      DesiredCount: 1
+      DesiredCount: 0
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 100
@@ -502,10 +507,7 @@ Resources:
               ListenerArns:
                 - !Ref AlbListener
   
-  CloudWatchLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/ecs/cicdlab'
+  
 
   EventBridgeRule:
     Type: AWS::Events::Rule
