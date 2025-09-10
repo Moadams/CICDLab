@@ -533,6 +533,24 @@ Resources:
           ActionOnTimeout: CONTINUE_DEPLOYMENT
   
   
+  EventBridgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AllowStartPipelineExecution
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: codepipeline:StartPipelineExecution
+                Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
 
   EventBridgeRule:
     Type: AWS::Events::Rule
@@ -549,12 +567,15 @@ Resources:
             - !Ref EcrRepository
           action-type:
             - 'PUSH'
+          result:
+            - 'SUCCESS'
+          image-tag:
+            - 'latest'
       Targets:
-        - Arn: 
-            !Sub 
-              - 'arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${PipelineName}'
-              - { PipelineName: !Ref CodePipeline }
+        - Arn: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
+          RoleArn: !GetAtt EventBridgeRole.Arn
           Id: CodePipelineTarget
+
 
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
