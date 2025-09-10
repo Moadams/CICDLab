@@ -575,24 +575,27 @@ Resources:
                 Version: '1'
               Configuration:
                 RepositoryName: !Ref EcrRepository
+                ImageTag: latest   
               OutputArtifacts:
                 - Name: EcrImage
               RunOrder: 1
+
         - Name: Deploy
           Actions:
             - Name: DeployToECS
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
-                Provider: CodeDeploy
+                Provider: CodeDeployToECS   
                 Version: '1'
+              InputArtifacts:
+                - Name: EcrImage
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroup
                 TaskDefinitionTemplateArtifact: EcrImage
-                AppSpecTemplateArtifact: EcrImage
-              InputArtifacts:
-                - Name: EcrImage
+                TaskDefinitionTemplatePath: taskdef.json    
+                AppSpecTemplatePath: appspec.yaml           
               RunOrder: 1
 
 Outputs:
