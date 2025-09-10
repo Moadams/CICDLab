@@ -350,7 +350,7 @@ Resources:
       LoadBalancers:
         - ContainerName: !Sub 'cicdlab-container'
           ContainerPort: !Ref ApplicationPort
-          TargetGroupArn: !Ref AlbTargetGroup
+          TargetGroupArn: !Ref TargetGroupBlue
       Tags:
         - Key: Name
           Value: !Sub 'cicdlab-service'
@@ -371,20 +371,30 @@ Resources:
         - Key: Name
           Value: !Sub 'cicdlab-ALB'
 
-  AlbTargetGroup:
+  TargetGroupBlue:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      VpcId: !Ref VPC
-      Port: !Ref ApplicationPort
+      Name: !Sub "cicdlab-tg-blue"
+      Port: 80
       Protocol: HTTP
+      VpcId: !Ref VPC
       TargetType: ip
       HealthCheckPath: /
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 2
-      HealthCheckIntervalSeconds: 30
-      Tags:
-        - Key: Name
-          Value: !Sub 'cicdlab-TargetGroup'
+      Matcher:
+        HttpCode: 200-399
+
+  TargetGroupGreen:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "cicdlab-tg-green"
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckPath: /
+      Matcher:
+        HttpCode: 200-399
+
 
   AlbListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -394,7 +404,19 @@ Resources:
       Protocol: HTTP
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref AlbTargetGroup
+          TargetGroupArn: !Ref TargetGroupBlue
+
+
+  # Test listener
+  AlbTestListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroupGreen
+      LoadBalancerArn: !Ref Alb
+      Port: 8080                  
+      Protocol: HTTP
   
   # ------------------------------------------------------------#
   #  CI/CD Pipeline and CodeDeploy                              #
@@ -495,13 +517,14 @@ Resources:
       LoadBalancerInfo:
         TargetGroupPairInfoList:
           - TargetGroups:
-              - Name: !Ref AlbTargetGroup
+              - Name: !Sub cicdlab-tg-blue
+              - Name: !Sub cicdlab-tg-green
             ProdTrafficRoute:
               ListenerArns:
                 - !Ref AlbListener
             TestTrafficRoute:
               ListenerArns:
-                - !Ref AlbListener
+                - !Ref AlbTestListener
       BlueGreenDeploymentConfiguration:   
         TerminateBlueInstancesOnDeploymentSuccess:
           Action: TERMINATE
@@ -529,7 +552,10 @@ Resources:
           action-type:
             - 'PUSH'
       Targets:
-        - Arn: !Sub 'arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}'
+        - Arn: 
+            !Sub 
+              - 'arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${PipelineName}'
+              - { PipelineName: !Ref CodePipeline }
           Id: CodePipelineTarget
 
   CodePipeline:
