@@ -674,7 +674,7 @@ Resources:
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroup       
-                TaskDefinitionTemplateArtifact: EcrImage
+                
                 
               RunOrder: 1
   # Scalable target for the ECS service
