@@ -675,7 +675,9 @@ Resources:
                 ApplicationName: !Ref CodeDeployApplication
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroup       
                 TaskDefinitionTemplateArtifact: EcrImage
-                TaskDefinitionTemplatePath: taskdef.json
+                ContainerName: cicdlab-container
+                Image1Name: "<IMAGE_PLACEHOLDER>"
+                Image1Tag: "latest"
               RunOrder: 1
   # Scalable target for the ECS service
   EcsServiceScalableTarget:
