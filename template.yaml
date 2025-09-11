@@ -592,48 +592,48 @@ Resources:
   #         ActionOnTimeout: CONTINUE_DEPLOYMENT
   
   
-  EventBridgeRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: AllowStartPipelineExecution
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: codepipeline:StartPipelineExecution
-                Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
+  # EventBridgeRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: events.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     Policies:
+  #       - PolicyName: AllowStartPipelineExecution
+  #         PolicyDocument:
+  #           Version: '2012-10-17'
+  #           Statement:
+  #             - Effect: Allow
+  #               Action: codepipeline:StartPipelineExecution
+  #               Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
 
-  EventBridgeRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: !Sub 'EcrImagePush-Rule-cicdlab'
-      Description: Triggers CodePipeline on new ECR image push.
-      EventPattern:
-        source:
-          - aws.ecr
-        detail-type:
-          - 'ECR Image Action'
-        detail:
-          repository-name:
-            - !Ref EcrRepository
-          action-type:
-            - 'PUSH'
-          result:
-            - 'SUCCESS'
-          image-tag:
-            - 'latest'
-      Targets:
-        - Arn: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
-          RoleArn: !GetAtt EventBridgeRole.Arn
-          Id: CodePipelineTarget
+  # EventBridgeRule:
+  #   Type: AWS::Events::Rule
+  #   Properties:
+  #     Name: !Sub 'EcrImagePush-Rule-cicdlab'
+  #     Description: Triggers CodePipeline on new ECR image push.
+  #     EventPattern:
+  #       source:
+  #         - aws.ecr
+  #       detail-type:
+  #         - 'ECR Image Action'
+  #       detail:
+  #         repository-name:
+  #           - !Ref EcrRepository
+  #         action-type:
+  #           - 'PUSH'
+  #         result:
+  #           - 'SUCCESS'
+  #         image-tag:
+  #           - 'latest'
+  #     Targets:
+  #       - Arn: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
+  #         RoleArn: !GetAtt EventBridgeRole.Arn
+  #         Id: CodePipelineTarget
 
 
   # CodePipeline:
@@ -678,53 +678,53 @@ Resources:
                 
   #             RunOrder: 1
   # # Scalable target for the ECS service
-  # EcsServiceScalableTarget:
-  #   Type: AWS::ApplicationAutoScaling::ScalableTarget
-  #   DependsOn: EcsService
-  #   Properties:
-  #     MaxCapacity: 4
-  #     MinCapacity: 1
-  #     ResourceId: !Sub service/cicdlab-Cluster/cicdlab-service 
-  #     RoleARN: !GetAtt ApplicationAutoScalingRole.Arn
-  #     ScalableDimension: ecs:service:DesiredCount
-  #     ServiceNamespace: ecs
+  EcsServiceScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn: EcsService
+    Properties:
+      MaxCapacity: 4
+      MinCapacity: 1
+      ResourceId: !Sub service/cicdlab-Cluster/cicdlab-service 
+      RoleARN: !GetAtt ApplicationAutoScalingRole.Arn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
 
-  # ApplicationAutoScalingRole:
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     AssumeRolePolicyDocument:
-  #       Version: "2012-10-17"
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal:
-  #             Service: application-autoscaling.amazonaws.com
-  #           Action: sts:AssumeRole
-  #     Policies:
-  #       - PolicyName: ApplicationAutoScalingPolicy
-  #         PolicyDocument:
-  #           Version: "2012-10-17"
-  #           Statement:
-  #             - Effect: Allow
-  #               Action:
-  #                 - iam:PassRole
-  #                 - ecs:UpdateService
-  #                 - ecs:DescribeServices
-  #                 - cloudwatch:PutMetricAlarm
-  #                 - cloudwatch:DescribeAlarms
-  #               Resource: "*"
+  ApplicationAutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: application-autoscaling.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ApplicationAutoScalingPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                  - ecs:UpdateService
+                  - ecs:DescribeServices
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:DescribeAlarms
+                Resource: "*"
 
-  # EcsCpuScalingPolicy:
-    # Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    # Properties:
-    #   PolicyName: !Sub "cicdlab-ecs-cpu-scaling"
-    #   PolicyType: TargetTrackingScaling
-    #   ScalingTargetId: !Ref EcsServiceScalableTarget
-    #   TargetTrackingScalingPolicyConfiguration:
-    #     TargetValue: 50.0
-    #     PredefinedMetricSpecification:
-    #       PredefinedMetricType: ECSServiceAverageCPUUtilization
-    #     ScaleInCooldown: 60
-    #     ScaleOutCooldown: 60
+  EcsCpuScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub "cicdlab-ecs-cpu-scaling"
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref EcsServiceScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 50.0
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
 
 
 Outputs:
