@@ -243,174 +243,174 @@ Resources:
   # # ------------------------------------------------------------#
   # #  ECS & Fargate                                              #
   # # ------------------------------------------------------------#
-  # EcsCluster:
-  #   Type: AWS::ECS::Cluster
-  #   Properties:
-  #     ClusterName: !Sub 'cicdlab-Cluster'
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Sub 'cicdlab-Cluster'
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub 'cicdlab-Cluster'
+      Tags:
+        - Key: Name
+          Value: !Sub 'cicdlab-Cluster'
 
-  # EcrRepository:
-  #   Type: AWS::ECR::Repository
-  #   Properties:
-  #     RepositoryName: !Sub 'cicdlab-repo'
-  #     ImageScanningConfiguration:
-  #       ScanOnPush: true
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Sub 'cicdlab-repo'
-  #     RepositoryPolicyText:
-  #       Version: '2008-10-17'
-  #       Statement:
-  #         - Sid: AllowAccountAccess
-  #           Effect: Allow
-  #           Principal:
-  #             AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
-  #           Action:
-  #             - ecr:GetDownloadUrlForLayer
-  #             - ecr:BatchGetImage
-  #             - ecr:BatchCheckLayerAvailability
-  #             - ecr:PutImage
-  #             - ecr:InitiateLayerUpload
-  #             - ecr:UploadLayerPart
-  #             - ecr:CompleteLayerUpload
+  EcrRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub 'cicdlab-repo'
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'cicdlab-repo'
+      RepositoryPolicyText:
+        Version: '2008-10-17'
+        Statement:
+          - Sid: AllowAccountAccess
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action:
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:PutImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
   
-  # GitHubOidcProvider:
-  #   Type: AWS::IAM::OIDCProvider
-  #   Properties:
-  #     Url: https://token.actions.githubusercontent.com
-  #     ClientIdList:
-  #       - sts.amazonaws.com
-  #     ThumbprintList:
-  #       - 7560d6f40fa55195f740ee2b1b7c0b4836cbe103
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Sub cicdlab-GitHubOidcProvider
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 7560d6f40fa55195f740ee2b1b7c0b4836cbe103
+      Tags:
+        - Key: Name
+          Value: !Sub cicdlab-GitHubOidcProvider
 
-  # GitHubActionsRole:
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     RoleName: !Sub cicdlab-GitHubActionsRole
-  #     AssumeRolePolicyDocument:
-  #       Version: 2012-10-17
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal:
-  #             Federated: !Ref GitHubOidcProvider
-  #           Action: sts:AssumeRoleWithWebIdentity
-  #           Condition:
-  #             StringLike:
-  #               token.actions.githubusercontent.com:sub: !Sub repo:${AllowedGithubRepo}:ref:${AllowedGithubBranch}
-  #             StringEquals:
-  #               token.actions.githubusercontent.com:aud: sts.amazonaws.com
-  #     Path: "/"
-  #     Policies:
-  #       - PolicyName: ECRPush
-  #         PolicyDocument:
-  #           Version: 2012-10-17
-  #           Statement:
-  #             - Effect: Allow
-  #               Action:
-  #                 - ecr:GetAuthorizationToken
-  #               Resource: "*"
-  #             - Effect: Allow
-  #               Action:
-  #                 - ecr:InitiateLayerUpload
-  #                 - ecr:UploadLayerPart
-  #                 - ecr:CompleteLayerUpload
-  #                 - ecr:PutImage
-  #                 - ecr:BatchCheckLayerAvailability
-  #               Resource: !GetAtt EcrRepository.Arn
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub cicdlab-GitHubActionsRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub repo:${AllowedGithubRepo}:ref:${AllowedGithubBranch}
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+      Path: "/"
+      Policies:
+        - PolicyName: ECRPush
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                  - ecr:BatchCheckLayerAvailability
+                Resource: !GetAtt EcrRepository.Arn
 
-  # EcsTaskExecutionRole:
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     RoleName: !Sub 'cicdlab-TaskExecutionRole'
-  #     AssumeRolePolicyDocument:
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal:
-  #             Service: [ecs-tasks.amazonaws.com]
-  #           Action: ['sts:AssumeRole']
-  #     ManagedPolicyArns:
-  #       - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+  EcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'cicdlab-TaskExecutionRole'
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
-  # EcsTaskRole:
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     RoleName: !Sub 'cicdlab-TaskRole'
-  #     AssumeRolePolicyDocument:
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal:
-  #             Service: [ecs-tasks.amazonaws.com]
-  #           Action: ['sts:AssumeRole']
-  #     Policies:
-  #       - PolicyName: EcsTaskPolicy
-  #         PolicyDocument:
-  #           Statement:
-  #             - Effect: Allow
-  #               Action:
-  #                 - 's3:GetObject'
-  #                 - 's3:ListBucket'
-  #               Resource: '*'
+  EcsTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'cicdlab-TaskRole'
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Policies:
+        - PolicyName: EcsTaskPolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                Resource: '*'
 
-  # CloudWatchLogGroup:
-  #   Type: AWS::Logs::LogGroup
-  #   Properties:
-  #     LogGroupName: !Sub '/ecs/cicdlab'
+  CloudWatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/cicdlab'
 
-  # EcsTaskDefinition:
-  #   Type: AWS::ECS::TaskDefinition
-  #   Properties:
-  #     Family: !Sub 'cicdlab-task-def'
-  #     Cpu: '256'
-  #     Memory: '512'
-  #     NetworkMode: awsvpc
-  #     RequiresCompatibilities:
-  #       - FARGATE
-  #     ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
-  #     TaskRoleArn: !GetAtt EcsTaskRole.Arn
-  #     ContainerDefinitions:
-  #       - Name: !Sub 'cicdlab-container'
-  #         Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}:latest'
-  #         PortMappings:
-  #           - ContainerPort: !Ref ApplicationPort
-  #         LogConfiguration:
-  #           LogDriver: awslogs
-  #           Options:
-  #             awslogs-group: !Ref CloudWatchLogGroup
-  #             awslogs-region: !Ref AWS::Region
-  #             awslogs-stream-prefix: ecs
+  EcsTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub 'cicdlab-task-def'
+      Cpu: '256'
+      Memory: '512'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt EcsTaskRole.Arn
+      ContainerDefinitions:
+        - Name: !Sub 'cicdlab-container'
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}:latest'
+          PortMappings:
+            - ContainerPort: !Ref ApplicationPort
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref CloudWatchLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
 
-  # EcsService:
-  #   Type: AWS::ECS::Service
-  #   DependsOn:
-  #     - AlbListener
-  #   Properties:
-  #     Cluster: !Ref EcsCluster
-  #     ServiceName: !Sub 'cicdlab-service'
-  #     TaskDefinition: !Ref EcsTaskDefinition
-  #     LaunchType: FARGATE
-  #     DesiredCount: 0
-  #     DeploymentController:             
-  #       Type: CODE_DEPLOY
-  #     NetworkConfiguration:
-  #       AwsvpcConfiguration:
-  #         Subnets:
-  #           - !Ref PrivateSubnet1
-  #           - !Ref PrivateSubnet2
-  #         SecurityGroups:
-  #           - !Ref EcsSecurityGroup
-  #         AssignPublicIp: DISABLED
-  #     LoadBalancers:
-  #       - ContainerName: !Sub 'cicdlab-container'
-  #         ContainerPort: !Ref ApplicationPort
-  #         TargetGroupArn: !Ref TargetGroupBlue
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Sub 'cicdlab-service'
+  EcsService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - AlbListener
+    Properties:
+      Cluster: !Ref EcsCluster
+      ServiceName: !Sub 'cicdlab-service'
+      TaskDefinition: !Ref EcsTaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: 0
+      DeploymentController:             
+        Type: CODE_DEPLOY
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+          SecurityGroups:
+            - !Ref EcsSecurityGroup
+          AssignPublicIp: DISABLED
+      LoadBalancers:
+        - ContainerName: !Sub 'cicdlab-container'
+          ContainerPort: !Ref ApplicationPort
+          TargetGroupArn: !Ref TargetGroupBlue
+      Tags:
+        - Key: Name
+          Value: !Sub 'cicdlab-service'
 
   # # ------------------------------------------------------------#
   # #  Application Load Balancer (ALB)                            #
@@ -727,33 +727,33 @@ Resources:
     #     ScaleOutCooldown: 60
 
 
-# Outputs:
+Outputs:
 #   AlbEndpoint:
 #     Description: The DNS name of the Application Load Balancer.
 #     Value: !GetAtt Alb.DNSName
 #     Export:
 #       Name: !Sub 'cicdlab-ALB-Endpoint'
 
-#   GitHubOidcRoleArn:
-#     Description: Role ARN for GitHub Actions to assume via OIDC to push images
-#     Value: !GetAtt GitHubActionsRole.Arn
-#     Export:
-#       Name: !Sub 'cicdlab-GithubOidcRoleArn'
+  GitHubOidcRoleArn:
+    Description: Role ARN for GitHub Actions to assume via OIDC to push images
+    Value: !GetAtt GitHubActionsRole.Arn
+    Export:
+      Name: !Sub 'cicdlab-GithubOidcRoleArn'
 
-#   EcrRepositoryUri:
-#     Description: The URI of the ECR repository.
-#     Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}'
-#     Export:
-#       Name: !Sub 'cicdlab-ECR-URI'
+  EcrRepositoryUri:
+    Description: The URI of the ECR repository.
+    Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EcrRepository}'
+    Export:
+      Name: !Sub 'cicdlab-ECR-URI'
 
-#   EcsClusterName:
-#     Description: The name of the ECS cluster.
-#     Value: !Ref EcsCluster
-#     Export:
-#       Name: !Sub 'cicdlab-ECS-Cluster-Name'
+  EcsClusterName:
+    Description: The name of the ECS cluster.
+    Value: !Ref EcsCluster
+    Export:
+      Name: !Sub 'cicdlab-ECS-Cluster-Name'
 
-#   EcsServiceName:
-#     Description: The name of the ECS service.
-#     Value: !Ref EcsService
-#     Export:
-#       Name: !Sub 'cicdlab-ECS-Service-Name'
+  EcsServiceName:
+    Description: The name of the ECS service.
+    Value: !Ref EcsService
+    Export:
+      Name: !Sub 'cicdlab-ECS-Service-Name'
