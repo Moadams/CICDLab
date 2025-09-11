@@ -28,6 +28,14 @@ Parameters:
     Type: Number
     Default: 8080
     Description: Port on which the application container listens.
+  AllowedGithubRepo:
+    Type: String
+    Default: Moadams/CICDApplication
+    Description: Allowed Github Repo
+  AllowedGithubBranch:
+    Type: String
+    Default: refs/heads/main
+    Description: Allowed Github Branch
 
 Resources:
   # ------------------------------------------------------------#
@@ -247,13 +255,15 @@ Resources:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: !Sub 'cicdlab-repo'
+      ImageScanningConfiguration:
+        ScanOnPush: true
       Tags:
         - Key: Name
           Value: !Sub 'cicdlab-repo'
       RepositoryPolicyText:
         Version: '2008-10-17'
         Statement:
-          - Sid: AllowPushPull
+          - Sid: AllowAccountAccess
             Effect: Allow
             Principal:
               AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
@@ -265,6 +275,53 @@ Resources:
               - ecr:InitiateLayerUpload
               - ecr:UploadLayerPart
               - ecr:CompleteLayerUpload
+  
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 7560d6f40fa55195f740ee2b1b7c0b4836cbe103
+      Tags:
+        - Key: Name
+          Value: !Sub cicdlab-GitHubOidcProvider
+
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub cicdlab-GitHubActionsRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub repo:${AllowedGithubRepo}:ref:${AllowedGithubBranch}
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+      Path: "/"
+      Policies:
+        - PolicyName: ECRPush
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                  - ecr:BatchCheckLayerAvailability
+                Resource: !GetAtt EcrRepository.Arn
 
   EcsTaskExecutionRole:
     Type: AWS::IAM::Role
@@ -336,7 +393,7 @@ Resources:
       ServiceName: !Sub 'cicdlab-service'
       TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
-      DesiredCount: 0
+      DesiredCount: 1
       DeploymentController:             
         Type: CODE_DEPLOY
       NetworkConfiguration:
@@ -379,7 +436,9 @@ Resources:
       Protocol: HTTP
       VpcId: !Ref VPC
       TargetType: ip
+      HealthCheckIntervalSeconds: 30
       HealthCheckPath: /
+      HealthCheckPort: traffic-port
       Matcher:
         HttpCode: 200-399
 
@@ -478,6 +537,114 @@ Resources:
                   - 'codedeploy:*'
                 Resource: '*'
   
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub cicdlab-codebuild-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Policies:
+        - PolicyName: CodeBuildInline
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:DescribeTaskDefinition
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/ecs/cicdlab:*
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub cicdlab-build-project
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+          GroupName: !Sub /ecs/cicdlab
+          StreamName: !Sub cicdlab-build-log
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.2
+          phases:
+            build:
+              commands:
+                - echo "Writing appspec.yml"
+                - |
+                  cat > appspec.yml <<EOL
+                  version: 0.0
+                  Resources:
+                    - TargetService:
+                        Type: AWS::ECS::Service
+                        Properties:
+                          TaskDefinition: arn:aws:ecs:eu-west-1:266735814394:task-definition/cicdlab-task-def:13
+                          LoadBalancerInfo:
+                            ContainerName: cicdlab-container
+                            ContainerPort: 80
+                  EOL
+      
+                - echo "Exporting taskdef.json"
+                - |
+                  cat > taskdef.json <<EOL
+                  {
+                    "family": "cicdlab-task-def",
+                    "networkMode": "awsvpc",
+                    "requiresCompatibilities": ["FARGATE"],
+                    "cpu": "256",
+                    "memory": "512",
+                    "executionRoleArn": "arn:aws:iam::266735814394:role/cicdlab-TaskExecutionRole",
+                    "containerDefinitions": [
+                      {
+                        "name": "cicdlab-container",
+                        "image": "<IMAGE1_NAME>",
+                        "portMappings": [
+                          {
+                            "containerPort": 80,
+                            "protocol": "tcp"
+                          }
+                        ],
+                        "logConfiguration": {
+                          "logDriver": "awslogs",
+                          "options": {
+                            "awslogs-group": "/ecs/cicdlab-log-group",
+                            "awslogs-region": "${AWS::Region}",
+                            "awslogs-stream-prefix": "cicdlab-container-log"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                  EOL
+          artifacts:
+            files:
+              - appspec.yml
+              - taskdef.json
+      TimeoutInMinutes: 10
+      Description: "Generates ECS AppSpec and TaskDef for CodeDeploy ECS Blue/Green"
+      Cache:
+        Type: NO_CACHE
+
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -600,6 +767,22 @@ Resources:
               OutputArtifacts:
                 - Name: EcrImage
               RunOrder: 1
+        
+        - Name: Build
+          Actions:
+            - Name: GenerateAppSpecAndTaskDef
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              InputArtifacts:
+                - Name: EcrImage
+              OutputArtifacts:
+                - Name: BuildArtifact
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              RunOrder: 1
 
         - Name: Deploy
           Actions:
@@ -607,17 +790,13 @@ Resources:
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
-                Provider: CodeDeployToECS   
+                Provider: CodeDeploy
                 Version: '1'
               InputArtifacts:
-                - Name: EcrImage
+                - Name: BuildArtifact
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
-                DeploymentGroupName: !Ref CodeDeployDeploymentGroup
-                TaskDefinitionTemplateArtifact: EcrImage
-                TaskDefinitionTemplatePath: taskdef.json   
-                AppSpecTemplateArtifact: EcrImage 
-                AppSpecTemplatePath: appspec.yaml           
+                DeploymentGroupName: !Ref CodeDeployDeploymentGroup         
               RunOrder: 1
   # Scalable target for the ECS service
   EcsServiceScalableTarget:
@@ -674,6 +853,16 @@ Outputs:
     Value: !GetAtt Alb.DNSName
     Export:
       Name: !Sub 'cicdlab-ALB-Endpoint'
+
+  LoadBalancerURL:
+    Description: URL of the load balancer
+    Value: !Sub http://${Alb.DNSName}
+        
+  GitHubOidcRoleArn:
+    Description: Role ARN for GitHub Actions to assume via OIDC to push images
+    Value: !GetAtt GitHubActionsRole.Arn
+    Export:
+      Name: !Sub 'cicdlab-GithubOidcRoleArn'
 
   EcrRepositoryUri:
     Description: The URI of the ECR repository.
