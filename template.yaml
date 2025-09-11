@@ -393,7 +393,13 @@ Resources:
       ServiceName: !Sub 'cicdlab-service'
       TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
-      DesiredCount: 1
+      DesiredCount: 0
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
       DeploymentController:             
         Type: CODE_DEPLOY
       NetworkConfiguration:
