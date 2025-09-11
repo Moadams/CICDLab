@@ -688,10 +688,11 @@ Resources:
   # Scalable target for the ECS service
   EcsServiceScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn: EcsService
     Properties:
       MaxCapacity: 4
       MinCapacity: 1
-      ResourceId: !Sub service/${EcsCluster}/cicdlab-service 
+      ResourceId: !Sub service/cicdlab-Cluster/cicdlab-service 
       RoleARN: !GetAtt ApplicationAutoScalingRole.Arn
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
