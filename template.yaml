@@ -432,7 +432,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub "cicdlab-tg-blue"
-      Port: 80
+      Port: 8080
       Protocol: HTTP
       VpcId: !Ref VPC
       TargetType: ip
@@ -537,114 +537,6 @@ Resources:
                   - 'codedeploy:*'
                 Resource: '*'
   
-  CodeBuildRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub cicdlab-codebuild-role
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: codebuild.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess
-      Policies:
-        - PolicyName: CodeBuildInline
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ecs:DescribeTaskDefinition
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/ecs/cicdlab:*
-
-  CodeBuildProject:
-    Type: AWS::CodeBuild::Project
-    Properties:
-      Name: !Sub cicdlab-build-project
-      ServiceRole: !GetAtt CodeBuildRole.Arn
-      Artifacts:
-        Type: CODEPIPELINE
-      LogsConfig:
-        CloudWatchLogs:
-          Status: ENABLED
-          GroupName: !Sub /ecs/cicdlab
-          StreamName: !Sub cicdlab-build-log
-      Environment:
-        ComputeType: BUILD_GENERAL1_SMALL
-        Image: aws/codebuild/standard:7.0
-        Type: LINUX_CONTAINER
-      Source:
-        Type: CODEPIPELINE
-        BuildSpec: !Sub |
-          version: 0.2
-          phases:
-            build:
-              commands:
-                - echo "Writing appspec.yml"
-                - |
-                  cat > appspec.yml <<EOL
-                  version: 0.0
-                  Resources:
-                    - TargetService:
-                        Type: AWS::ECS::Service
-                        Properties:
-                          TaskDefinition: arn:aws:ecs:eu-west-1:266735814394:task-definition/cicdlab-task-def:13
-                          LoadBalancerInfo:
-                            ContainerName: cicdlab-container
-                            ContainerPort: 80
-                  EOL
-      
-                - echo "Exporting taskdef.json"
-                - |
-                  cat > taskdef.json <<EOL
-                  {
-                    "family": "cicdlab-task-def",
-                    "networkMode": "awsvpc",
-                    "requiresCompatibilities": ["FARGATE"],
-                    "cpu": "256",
-                    "memory": "512",
-                    "executionRoleArn": "arn:aws:iam::266735814394:role/cicdlab-TaskExecutionRole",
-                    "containerDefinitions": [
-                      {
-                        "name": "cicdlab-container",
-                        "image": "<IMAGE1_NAME>",
-                        "portMappings": [
-                          {
-                            "containerPort": 80,
-                            "protocol": "tcp"
-                          }
-                        ],
-                        "logConfiguration": {
-                          "logDriver": "awslogs",
-                          "options": {
-                            "awslogs-group": "/ecs/cicdlab-log-group",
-                            "awslogs-region": "${AWS::Region}",
-                            "awslogs-stream-prefix": "cicdlab-container-log"
-                          }
-                        }
-                      }
-                    ]
-                  }
-                  EOL
-          artifacts:
-            files:
-              - appspec.yml
-              - taskdef.json
-      TimeoutInMinutes: 10
-      Description: "Generates ECS AppSpec and TaskDef for CodeDeploy ECS Blue/Green"
-      Cache:
-        Type: NO_CACHE
-
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -768,22 +660,7 @@ Resources:
                 - Name: EcrImage
               RunOrder: 1
         
-        - Name: Build
-          Actions:
-            - Name: GenerateAppSpecAndTaskDef
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Provider: CodeBuild
-                Version: 1
-              InputArtifacts:
-                - Name: EcrImage
-              OutputArtifacts:
-                - Name: BuildArtifact
-              Configuration:
-                ProjectName: !Ref CodeBuildProject
-              RunOrder: 1
-
+        
         - Name: Deploy
           Actions:
             - Name: DeployToECS
@@ -793,10 +670,14 @@ Resources:
                 Provider: CodeDeploy
                 Version: '1'
               InputArtifacts:
-                - Name: BuildArtifact
+                - Name: EcrImage
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
-                DeploymentGroupName: !Ref CodeDeployDeploymentGroup         
+                DeploymentGroupName: !Ref CodeDeployDeploymentGroup       
+                TaskDefinitionTemplateArtifact: EcrImage
+                TaskDefinitionTemplatePath: taskdef.json
+                AppSpecTemplateArtifact: EcrImage
+                AppSpecTemplatePath: appspec.yml  
               RunOrder: 1
   # Scalable target for the ECS service
   EcsServiceScalableTarget:
@@ -854,10 +735,6 @@ Outputs:
     Export:
       Name: !Sub 'cicdlab-ALB-Endpoint'
 
-  LoadBalancerURL:
-    Description: URL of the load balancer
-    Value: !Sub http://${Alb.DNSName}
-        
   GitHubOidcRoleArn:
     Description: Role ARN for GitHub Actions to assume via OIDC to push images
     Value: !GetAtt GitHubActionsRole.Arn
