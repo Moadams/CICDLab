@@ -676,8 +676,6 @@ Resources:
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroup       
                 TaskDefinitionTemplateArtifact: EcrImage
                 TaskDefinitionTemplatePath: taskdef.json
-                AppSpecTemplateArtifact: EcrImage
-                AppSpecTemplatePath: appspec.yml  
               RunOrder: 1
   # Scalable target for the ECS service
   EcsServiceScalableTarget:
