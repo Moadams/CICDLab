@@ -477,84 +477,84 @@ Resources:
       Port: 9000                  
       Protocol: HTTP
   
-  # # ------------------------------------------------------------#
-  # #  CI/CD Pipeline and CodeDeploy                              #
-  # # ------------------------------------------------------------#
-  # CodePipelineBucket:
-  #   Type: AWS::S3::Bucket
-  #   Properties:
-  #     BucketName: !Sub 'codepipeline-cicdlab-${AWS::AccountId}'
-  #     VersioningConfiguration:
-  #       Status: Enabled
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Sub 'codepipeline-cicdlab-artifact-store'
+  # ------------------------------------------------------------#
+  #  CI/CD Pipeline and CodeDeploy                              #
+  # ------------------------------------------------------------#
+  CodePipelineBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'codepipeline-cicdlab-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub 'codepipeline-cicdlab-artifact-store'
 
-  # CodePipelineServiceRole:
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     RoleName: !Sub 'cicdlab-CodePipelineRole'
-  #     AssumeRolePolicyDocument:
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal:
-  #             Service: [codepipeline.amazonaws.com]
-  #           Action: ['sts:AssumeRole']
-  #     Policies:
-  #       - PolicyName: CodePipelinePolicy
-  #         PolicyDocument:
-  #           Statement:
-  #             - Effect: Allow
-  #               Action:
-  #                 - 's3:GetObject'
-  #                 - 's3:PutObject'
-  #                 - 's3:GetBucketVersioning'
-  #                 - 's3:ListBucket'
-  #               Resource:
-  #                 - !Sub 'arn:aws:s3:::codepipeline-cicdlab-${AWS::AccountId}'
-  #                 - !Sub 'arn:aws:s3:::codepipeline-cicdlab-${AWS::AccountId}/*'
-  #             - Effect: Allow
-  #               Action:
-  #                 - 'ecr:BatchGetImage'
-  #                 - 'ecr:GetDownloadUrlForLayer'
-  #                 - 'ecr:DescribeImages'
-  #               Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepository}'
-  #             - Effect: Allow
-  #               Action:
-  #                 - 'iam:PassRole'
-  #               Resource:
-  #                 - !GetAtt CodeDeployServiceRole.Arn
-  #                 - !GetAtt EcsTaskExecutionRole.Arn
-  #                 - !GetAtt EcsTaskRole.Arn
-  #             - Effect: Allow
-  #               Action:
-  #                 - 'ecs:DescribeServices'
-  #                 - 'ecs:UpdateService'
-  #                 - 'ecs:RegisterTaskDefinition'
-  #               Resource: '*'
-  #             - Effect: Allow
-  #               Action:
-  #                 - 'codedeploy:*'
-  #               Resource: '*'
+  CodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'cicdlab-CodePipelineRole'
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [codepipeline.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Policies:
+        - PolicyName: CodePipelinePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:PutObject'
+                  - 's3:GetBucketVersioning'
+                  - 's3:ListBucket'
+                Resource:
+                  - !Sub 'arn:aws:s3:::codepipeline-cicdlab-${AWS::AccountId}'
+                  - !Sub 'arn:aws:s3:::codepipeline-cicdlab-${AWS::AccountId}/*'
+              - Effect: Allow
+                Action:
+                  - 'ecr:BatchGetImage'
+                  - 'ecr:GetDownloadUrlForLayer'
+                  - 'ecr:DescribeImages'
+                Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepository}'
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource:
+                  - !GetAtt CodeDeployServiceRole.Arn
+                  - !GetAtt EcsTaskExecutionRole.Arn
+                  - !GetAtt EcsTaskRole.Arn
+              - Effect: Allow
+                Action:
+                  - 'ecs:DescribeServices'
+                  - 'ecs:UpdateService'
+                  - 'ecs:RegisterTaskDefinition'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'codedeploy:*'
+                Resource: '*'
   
-  # CodeDeployServiceRole:
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     RoleName: !Sub 'cicdlab-CodeDeployRole'
-  #     AssumeRolePolicyDocument:
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal:
-  #             Service: [codedeploy.amazonaws.com]
-  #           Action: ['sts:AssumeRole']
-  #     ManagedPolicyArns:
-  #       - arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS
+  CodeDeployServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'cicdlab-CodeDeployRole'
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [codedeploy.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS
 
-  # CodeDeployApplication:
-  #   Type: AWS::CodeDeploy::Application
-  #   Properties:
-  #     ApplicationName: !Sub 'cicdlab-App'
-  #     ComputePlatform: ECS
+  CodeDeployApplication:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ApplicationName: !Sub 'cicdlab-App'
+      ComputePlatform: ECS
 
   # CodeDeployDeploymentGroup:
   #   Type: AWS::CodeDeploy::DeploymentGroup
@@ -728,11 +728,11 @@ Resources:
 
 
 Outputs:
-#   AlbEndpoint:
-#     Description: The DNS name of the Application Load Balancer.
-#     Value: !GetAtt Alb.DNSName
-#     Export:
-#       Name: !Sub 'cicdlab-ALB-Endpoint'
+  AlbEndpoint:
+    Description: The DNS name of the Application Load Balancer.
+    Value: !GetAtt Alb.DNSName
+    Export:
+      Name: !Sub 'cicdlab-ALB-Endpoint'
 
   GitHubOidcRoleArn:
     Description: Role ARN for GitHub Actions to assume via OIDC to push images
