@@ -415,67 +415,67 @@ Resources:
   # # ------------------------------------------------------------#
   # #  Application Load Balancer (ALB)                            #
   # # ------------------------------------------------------------#
-  # Alb:
-  #   Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-  #   Properties:
-  #     Scheme: internet-facing
-  #     Subnets:
-  #       - !Ref PublicSubnet1
-  #       - !Ref PublicSubnet2
-  #     SecurityGroups:
-  #       - !Ref AlbSecurityGroup
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Sub 'cicdlab-ALB'
+  Alb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub 'cicdlab-ALB'
 
-  # TargetGroupBlue:
-  #   Type: AWS::ElasticLoadBalancingV2::TargetGroup
-  #   Properties:
-  #     Name: !Sub "cicdlab-tg-blue"
-  #     Port: 8080
-  #     Protocol: HTTP
-  #     VpcId: !Ref VPC
-  #     TargetType: ip
-  #     HealthCheckIntervalSeconds: 30
-  #     HealthCheckPath: /
-  #     HealthCheckPort: traffic-port
-  #     Matcher:
-  #       HttpCode: 200-399
+  TargetGroupBlue:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "cicdlab-tg-blue"
+      Port: 8080
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /
+      HealthCheckPort: traffic-port
+      Matcher:
+        HttpCode: 200-399
 
-  # TargetGroupGreen:
-  #   Type: AWS::ElasticLoadBalancingV2::TargetGroup
-  #   Properties:
-  #     Name: !Sub "cicdlab-tg-green"
-  #     Port: 80
-  #     Protocol: HTTP
-  #     VpcId: !Ref VPC
-  #     TargetType: ip
-  #     HealthCheckPath: /
-  #     Matcher:
-  #       HttpCode: 200-399
-
-
-  # AlbListener:
-  #   Type: AWS::ElasticLoadBalancingV2::Listener
-  #   Properties:
-  #     LoadBalancerArn: !Ref Alb
-  #     Port: 80
-  #     Protocol: HTTP
-  #     DefaultActions:
-  #       - Type: forward
-  #         TargetGroupArn: !Ref TargetGroupBlue
+  TargetGroupGreen:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "cicdlab-tg-green"
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckPath: /
+      Matcher:
+        HttpCode: 200-399
 
 
-  # # Test listener
-  # AlbTestListener:
-  #   Type: AWS::ElasticLoadBalancingV2::Listener
-  #   Properties:
-  #     DefaultActions:
-  #       - Type: forward
-  #         TargetGroupArn: !Ref TargetGroupGreen
-  #     LoadBalancerArn: !Ref Alb
-  #     Port: 9000                  
-  #     Protocol: HTTP
+  AlbListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref Alb
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroupBlue
+
+
+  # Test listener
+  AlbTestListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroupGreen
+      LoadBalancerArn: !Ref Alb
+      Port: 9000                  
+      Protocol: HTTP
   
   # # ------------------------------------------------------------#
   # #  CI/CD Pipeline and CodeDeploy                              #
