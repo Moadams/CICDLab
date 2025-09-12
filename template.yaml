@@ -663,7 +663,7 @@ Resources:
                 - Name: SourceOutput
               RunOrder: 1
 
-        - Name: Source
+        - Name: ECRSource
           Actions:
             - Name: EcrImage
               ActionTypeId:
