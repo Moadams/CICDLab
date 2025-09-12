@@ -663,21 +663,20 @@ Resources:
                 - Name: SourceOutput
               RunOrder: 1
 
-            - Name: ECRSource
-              Actions:
-                - Name: EcrImage
-                  ActionTypeId:
-                    Category: Source
-                    Owner: AWS
-                    Provider: ECR
-                    Version: '1'
-                  Configuration:
-                    RepositoryName: !Ref EcrRepository
-                    ImageTag: latest   
-                  OutputArtifacts:
-                    - Name: EcrImage
-                  RunOrder: 2
             
+            - Name: EcrSource
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: ECR
+                Version: '1'
+              Configuration:
+                RepositoryName: !Ref EcrRepository
+                ImageTag: latest   
+              OutputArtifacts:
+                - Name: EcrImage
+              RunOrder: 2
+          
           
         - Name: Deploy
           Actions:
