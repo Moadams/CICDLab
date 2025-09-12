@@ -39,7 +39,7 @@ Parameters:
 
 Resources:
   # ------------------------------------------------------------#
-  #  VPC and Networking                                         #
+  #  VPC and Networking                                          #
   # ------------------------------------------------------------#
   VPC:
     Type: AWS::EC2::VPC
@@ -210,7 +210,7 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable2
 
   # ------------------------------------------------------------#
-  #  Security Groups                                            #
+  #  Security Groups                                             #
   # ------------------------------------------------------------#
   AlbSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -240,9 +240,9 @@ Resources:
         - Key: Name
           Value: !Sub 'cicdlab-ECS-SG'
   
-  # # ------------------------------------------------------------#
-  # #  ECS & Fargate                                              #
-  # # ------------------------------------------------------------#
+  # ------------------------------------------------------------#
+  #  ECS & Fargate                                               #
+  # ------------------------------------------------------------#
   EcsCluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -388,13 +388,14 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn:
       - AlbListener
+      - CodeDeployDeploymentGroup # Added dependency to ensure the deployment group exists
     Properties:
       Cluster: !Ref EcsCluster
       ServiceName: !Sub 'cicdlab-service'
       TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
       DesiredCount: 1
-      DeploymentController:             
+      DeploymentController:
         Type: CODE_DEPLOY
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -412,9 +413,9 @@ Resources:
         - Key: Name
           Value: !Sub 'cicdlab-service'
 
-  # # ------------------------------------------------------------#
-  # #  Application Load Balancer (ALB)                            #
-  # # ------------------------------------------------------------#
+  # ------------------------------------------------------------#
+  #  Application Load Balancer (ALB)                              #
+  # ------------------------------------------------------------#
   Alb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -441,19 +442,18 @@ Resources:
       HealthCheckPort: traffic-port
       Matcher:
         HttpCode: 200-399
-
+  
   TargetGroupGreen:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub "cicdlab-tg-green"
-      Port: 80
+      Port: 8080 # Corrected port to match ApplicationPort
       Protocol: HTTP
       VpcId: !Ref VPC
       TargetType: ip
       HealthCheckPath: /
       Matcher:
         HttpCode: 200-399
-
 
   AlbListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -465,8 +465,6 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroupBlue
 
-
-  # Test listener
   AlbTestListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -474,11 +472,11 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroupGreen
       LoadBalancerArn: !Ref Alb
-      Port: 9000                  
+      Port: 9000
       Protocol: HTTP
-  
+
   # ------------------------------------------------------------#
-  #  CI/CD Pipeline and CodeDeploy                              #
+  #  CI/CD Pipeline and CodeDeploy                              #
   # ------------------------------------------------------------#
   CodePipelineBucket:
     Type: AWS::S3::Bucket
@@ -518,7 +516,7 @@ Resources:
                   - 'ecr:BatchGetImage'
                   - 'ecr:GetDownloadUrlForLayer'
                   - 'ecr:DescribeImages'
-                Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepository}'
+                Resource: !GetAtt EcrRepository.Arn
               - Effect: Allow
                 Action:
                   - 'iam:PassRole'
@@ -536,7 +534,7 @@ Resources:
                 Action:
                   - 'codedeploy:*'
                 Resource: '*'
-  
+
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -584,14 +582,13 @@ Resources:
             TestTrafficRoute:
               ListenerArns:
                 - !Ref AlbTestListener
-      BlueGreenDeploymentConfiguration:   
+      BlueGreenDeploymentConfiguration:
         TerminateBlueInstancesOnDeploymentSuccess:
           Action: TERMINATE
           TerminationWaitTimeInMinutes: 5
         DeploymentReadyOption:
           ActionOnTimeout: CONTINUE_DEPLOYMENT
-  
-  
+
   EventBridgeRole:
     Type: AWS::IAM::Role
     Properties:
@@ -635,7 +632,6 @@ Resources:
           RoleArn: !GetAtt EventBridgeRole.Arn
           Id: CodePipelineTarget
 
-
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -656,12 +652,11 @@ Resources:
                 Version: '1'
               Configuration:
                 RepositoryName: !Ref EcrRepository
-                ImageTag: latest   
+                ImageTag: latest
               OutputArtifacts:
                 - Name: EcrImage
               RunOrder: 1
-          
-          
+        # ---------------- Deploy Stage ----------------
         - Name: Deploy
           Actions:
             - Name: DeployToECS
@@ -677,8 +672,8 @@ Resources:
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroup
                 TaskDefinitionTemplateArtifact: EcrImage
                 AppSpecTemplateArtifact: EcrImage
-                
               RunOrder: 1
+
   # Scalable target for the ECS service
   EcsServiceScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
@@ -686,7 +681,7 @@ Resources:
     Properties:
       MaxCapacity: 4
       MinCapacity: 1
-      ResourceId: !Sub service/cicdlab-Cluster/cicdlab-service 
+      ResourceId: !Sub service/cicdlab-Cluster/cicdlab-service
       RoleARN: !GetAtt ApplicationAutoScalingRole.Arn
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
