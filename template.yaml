@@ -696,11 +696,7 @@ Resources:
                 - Name: EcrImage
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
-                DeploymentGroupName: !Ref CodeDeployDeploymentGroup
-                AppSpecTemplateArtifact: SourceOutput
-                AppSpecTemplatePath: appspec.yml
-                TaskDefinitionTemplateArtifact: SourceOutput
-                TaskDefinitionTemplatePath: taskdef.json
+                DeploymentGroupName: !Ref CodeDeploymentGroup
               RunOrder: 1
   # # Scalable target for the ECS service
   EcsServiceScalableTarget:
