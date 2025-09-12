@@ -675,9 +675,11 @@ Resources:
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroup
+                TaskDefinitionTemplateArtifact: EcrImage
+                AppSpecTemplateArtifact: EcrImage
                 
               RunOrder: 1
-  # # Scalable target for the ECS service
+  # Scalable target for the ECS service
   EcsServiceScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     DependsOn: EcsService
