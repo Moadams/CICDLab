@@ -405,7 +405,7 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn:
       - AlbListener
-      - CodeDeployDeploymentGroup # Added dependency to ensure the deployment group exists
+      - CodeDeployDeploymentGroup
     Properties:
       Cluster: !Ref EcsCluster
       ServiceName: !Sub 'cicdlab-service'
@@ -552,7 +552,6 @@ Resources:
   # Scalable target for the ECS service
   EcsServiceScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
-    DependsOn: EcsService
     Properties:
       MaxCapacity: 4
       MinCapacity: 1
