@@ -556,40 +556,40 @@ Resources:
       ApplicationName: !Sub 'cicdlab-App'
       ComputePlatform: ECS
 
-  # CodeDeployDeploymentGroup:
-  #   Type: AWS::CodeDeploy::DeploymentGroup
-  #   Properties:
-  #     ApplicationName: !Ref CodeDeployApplication
-  #     DeploymentGroupName: !Sub 'cicdlab-DG'
-  #     DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
-  #     ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
-  #     AutoRollbackConfiguration:
-  #       Enabled: true
-  #       Events:
-  #         - DEPLOYMENT_FAILURE
-  #     DeploymentStyle:
-  #       DeploymentOption: WITH_TRAFFIC_CONTROL
-  #       DeploymentType: BLUE_GREEN
-  #     ECSServices:
-  #       - ClusterName: !Ref EcsCluster
-  #         ServiceName: !GetAtt EcsService.Name
-  #     LoadBalancerInfo:
-  #       TargetGroupPairInfoList:
-  #         - TargetGroups:
-  #             - Name: !Sub cicdlab-tg-blue
-  #             - Name: !Sub cicdlab-tg-green
-  #           ProdTrafficRoute:
-  #             ListenerArns:
-  #               - !Ref AlbListener
-  #           TestTrafficRoute:
-  #             ListenerArns:
-  #               - !Ref AlbTestListener
-  #     BlueGreenDeploymentConfiguration:   
-  #       TerminateBlueInstancesOnDeploymentSuccess:
-  #         Action: TERMINATE
-  #         TerminationWaitTimeInMinutes: 5
-  #       DeploymentReadyOption:
-  #         ActionOnTimeout: CONTINUE_DEPLOYMENT
+  CodeDeployDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref CodeDeployApplication
+      DeploymentGroupName: !Sub 'cicdlab-DG'
+      DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
+      ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
+      AutoRollbackConfiguration:
+        Enabled: true
+        Events:
+          - DEPLOYMENT_FAILURE
+      DeploymentStyle:
+        DeploymentOption: WITH_TRAFFIC_CONTROL
+        DeploymentType: BLUE_GREEN
+      ECSServices:
+        - ClusterName: !Ref EcsCluster
+          ServiceName: !GetAtt EcsService.Name
+      LoadBalancerInfo:
+        TargetGroupPairInfoList:
+          - TargetGroups:
+              - Name: !Sub cicdlab-tg-blue
+              - Name: !Sub cicdlab-tg-green
+            ProdTrafficRoute:
+              ListenerArns:
+                - !Ref AlbListener
+            TestTrafficRoute:
+              ListenerArns:
+                - !Ref AlbTestListener
+      BlueGreenDeploymentConfiguration:   
+        TerminateBlueInstancesOnDeploymentSuccess:
+          Action: TERMINATE
+          TerminationWaitTimeInMinutes: 5
+        DeploymentReadyOption:
+          ActionOnTimeout: CONTINUE_DEPLOYMENT
   
   
   # EventBridgeRole:
