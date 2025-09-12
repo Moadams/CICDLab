@@ -653,22 +653,6 @@ Resources:
         # ---------------- Source Stage ----------------
         - Name: Source
           Actions:
-            - Name: GitHubSource
-              ActionTypeId:
-                Category: Source
-                Owner: ThirdParty
-                Provider: GitHub
-                Version: '1'
-              Configuration:
-                Owner: Moadams
-                Repo: CICDApplication
-                Branch: main
-                OAuthToken: !Ref GitHubToken
-              OutputArtifacts:
-                - Name: SourceOutput
-              RunOrder: 1
-
-            
             - Name: EcrSource
               ActionTypeId:
                 Category: Source
@@ -680,7 +664,7 @@ Resources:
                 ImageTag: latest   
               OutputArtifacts:
                 - Name: EcrImage
-              RunOrder: 2
+              RunOrder: 1
           
           
         - Name: Deploy
@@ -692,7 +676,6 @@ Resources:
                 Provider: CodeDeploy
                 Version: '1'
               InputArtifacts:
-                - Name: SourceOutput
                 - Name: EcrImage
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
