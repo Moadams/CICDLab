@@ -696,7 +696,8 @@ Resources:
                 - Name: EcrImage
               Configuration:
                 ApplicationName: !Ref CodeDeployApplication
-                DeploymentGroupName: !Ref CodeDeploymentGroup
+                DeploymentGroupName: !Ref CodeDeployDeploymentGroup
+                
               RunOrder: 1
   # # Scalable target for the ECS service
   EcsServiceScalableTarget:
