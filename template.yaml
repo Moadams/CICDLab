@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   CloudFormation template for a highly available, containerized full-stack Java web application
-  on Amazon ECS (Fargate) with a secure CI/CD pipeline using a GitHub Actions.
+  on Amazon ECS (Fargate) with a secure CI/CD pipeline.
 
 Parameters:
   VpcCidr:
@@ -31,11 +31,11 @@ Parameters:
   AllowedGithubRepo:
     Type: String
     Default: Moadams/CICDApplication
-    Description: GitHub Repository name, including the owner (e.g., Moadams/CICDApplication).
+    Description: Allowed Github Repo
   AllowedGithubBranch:
     Type: String
-    Default: main
-    Description: The branch to trigger the pipeline (e.g., main).
+    Default: refs/heads/main
+    Description: Allowed Github Branch
 
 Resources:
   # ------------------------------------------------------------#
@@ -240,9 +240,9 @@ Resources:
         - Key: Name
           Value: !Sub 'cicdlab-ECS-SG'
   
-  # ------------------------------------------------------------#
-  #  ECS & Fargate                                              #
-  # ------------------------------------------------------------#
+  # # ------------------------------------------------------------#
+  # #  ECS & Fargate                                              #
+  # # ------------------------------------------------------------#
   EcsCluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -301,7 +301,7 @@ Resources:
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringLike:
-                token.actions.githubusercontent.com:sub: !Sub repo:${AllowedGithubRepo}:ref:refs/heads/${AllowedGithubBranch}
+                token.actions.githubusercontent.com:sub: !Sub repo:${AllowedGithubRepo}:ref:${AllowedGithubBranch}
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
       Path: "/"
@@ -322,24 +322,7 @@ Resources:
                   - ecr:PutImage
                   - ecr:BatchCheckLayerAvailability
                 Resource: !GetAtt EcrRepository.Arn
-              - Effect: Allow
-                Action:
-                  - s3:PutObject
-                  - s3:GetObject
-                  - s3:ListBucket
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - 'iam:PassRole'
-                Resource:
-                  - !GetAtt EcsTaskExecutionRole.Arn
-                  - !GetAtt EcsTaskRole.Arn
-              - Effect: Allow
-                Action:
-                  - 'ecs:UpdateService'
-                  - 'ecs:DescribeServices'
-                Resource: !GetAtt EcsService.Arn
-  
+
   EcsTaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -405,14 +388,13 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn:
       - AlbListener
-      - CodeDeployDeploymentGroup
     Properties:
       Cluster: !Ref EcsCluster
       ServiceName: !Sub 'cicdlab-service'
       TaskDefinition: !Ref EcsTaskDefinition
       LaunchType: FARGATE
-      DesiredCount: 1
-      DeploymentController:
+      DesiredCount: 0
+      DeploymentController:             
         Type: CODE_DEPLOY
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -430,9 +412,9 @@ Resources:
         - Key: Name
           Value: !Sub 'cicdlab-service'
 
-  # ------------------------------------------------------------#
-  #  Application Load Balancer (ALB)                            #
-  # ------------------------------------------------------------#
+  # # ------------------------------------------------------------#
+  # #  Application Load Balancer (ALB)                            #
+  # # ------------------------------------------------------------#
   Alb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -459,18 +441,19 @@ Resources:
       HealthCheckPort: traffic-port
       Matcher:
         HttpCode: 200-399
-  
+
   TargetGroupGreen:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub "cicdlab-tg-green"
-      Port: 8080 # Corrected port to match ApplicationPort
+      Port: 80
       Protocol: HTTP
       VpcId: !Ref VPC
       TargetType: ip
       HealthCheckPath: /
       Matcher:
         HttpCode: 200-399
+
 
   AlbListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -482,6 +465,8 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroupBlue
 
+
+  # Test listener
   AlbTestListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -489,12 +474,69 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroupGreen
       LoadBalancerArn: !Ref Alb
-      Port: 9000
+      Port: 9000                  
       Protocol: HTTP
-
+  
   # ------------------------------------------------------------#
   #  CI/CD Pipeline and CodeDeploy                              #
   # ------------------------------------------------------------#
+  CodePipelineBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'codepipeline-cicdlab-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub 'codepipeline-cicdlab-artifact-store'
+
+  CodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'cicdlab-CodePipelineRole'
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [codepipeline.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Policies:
+        - PolicyName: CodePipelinePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:PutObject'
+                  - 's3:GetBucketVersioning'
+                  - 's3:ListBucket'
+                Resource:
+                  - !Sub 'arn:aws:s3:::codepipeline-cicdlab-${AWS::AccountId}'
+                  - !Sub 'arn:aws:s3:::codepipeline-cicdlab-${AWS::AccountId}/*'
+              - Effect: Allow
+                Action:
+                  - 'ecr:BatchGetImage'
+                  - 'ecr:GetDownloadUrlForLayer'
+                  - 'ecr:DescribeImages'
+                Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EcrRepository}'
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource:
+                  - !GetAtt CodeDeployServiceRole.Arn
+                  - !GetAtt EcsTaskExecutionRole.Arn
+                  - !GetAtt EcsTaskRole.Arn
+              - Effect: Allow
+                Action:
+                  - 'ecs:DescribeServices'
+                  - 'ecs:UpdateService'
+                  - 'ecs:RegisterTaskDefinition'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'codedeploy:*'
+                Resource: '*'
+  
   CodeDeployServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -530,7 +572,7 @@ Resources:
         DeploymentType: BLUE_GREEN
       ECSServices:
         - ClusterName: !Ref EcsCluster
-          ServiceName: !Ref EcsService
+          ServiceName: !GetAtt EcsService.Name
       LoadBalancerInfo:
         TargetGroupPairInfoList:
           - TargetGroups:
@@ -542,20 +584,107 @@ Resources:
             TestTrafficRoute:
               ListenerArns:
                 - !Ref AlbTestListener
-      BlueGreenDeploymentConfiguration:
+      BlueGreenDeploymentConfiguration:   
         TerminateBlueInstancesOnDeploymentSuccess:
           Action: TERMINATE
           TerminationWaitTimeInMinutes: 5
         DeploymentReadyOption:
           ActionOnTimeout: CONTINUE_DEPLOYMENT
+  
+  
+  EventBridgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AllowStartPipelineExecution
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: codepipeline:StartPipelineExecution
+                Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
 
-  # Scalable target for the ECS service
+  EventBridgeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub 'EcrImagePush-Rule-cicdlab'
+      Description: Triggers CodePipeline on new ECR image push.
+      EventPattern:
+        source:
+          - aws.ecr
+        detail-type:
+          - 'ECR Image Action'
+        detail:
+          repository-name:
+            - !Ref EcrRepository
+          action-type:
+            - 'PUSH'
+          result:
+            - 'SUCCESS'
+          image-tag:
+            - 'latest'
+      Targets:
+        - Arn: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}
+          RoleArn: !GetAtt EventBridgeRole.Arn
+          Id: CodePipelineTarget
+
+
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub 'cicdlab-Pipeline'
+      RoleArn: !GetAtt CodePipelineServiceRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref CodePipelineBucket
+      Stages:
+        # ---------------- Source Stage ----------------
+        - Name: Source
+          Actions:
+            - Name: EcrSource
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: ECR
+                Version: '1'
+              Configuration:
+                RepositoryName: !Ref EcrRepository
+                ImageTag: latest   
+              OutputArtifacts:
+                - Name: EcrImage
+              RunOrder: 1
+          
+          
+        - Name: Deploy
+          Actions:
+            - Name: DeployToECS
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CodeDeploy
+                Version: '1'
+              InputArtifacts:
+                - Name: EcrImage
+              Configuration:
+                ApplicationName: !Ref CodeDeployApplication
+                DeploymentGroupName: !Ref CodeDeployDeploymentGroup
+                
+              RunOrder: 1
+  # # Scalable target for the ECS service
   EcsServiceScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn: EcsService
     Properties:
       MaxCapacity: 4
       MinCapacity: 1
-      ResourceId: !Sub service/${EcsCluster}/${EcsService}
+      ResourceId: !Sub service/cicdlab-Cluster/cicdlab-service 
       RoleARN: !GetAtt ApplicationAutoScalingRole.Arn
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
@@ -596,6 +725,7 @@ Resources:
           PredefinedMetricType: ECSServiceAverageCPUUtilization
         ScaleInCooldown: 60
         ScaleOutCooldown: 60
+
 
 Outputs:
   AlbEndpoint:
