@@ -40,6 +40,7 @@ Parameters:
     Type: String
     NoEcho: true
     Description: GitHub Personal Access Token
+    Default: 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
 
 Resources:
   # ------------------------------------------------------------#
